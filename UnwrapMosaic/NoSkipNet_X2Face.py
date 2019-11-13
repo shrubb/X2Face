@@ -17,11 +17,11 @@ def weights_init_normal(m):
     classname = m.__class__.__name__
     # print(classname)
     if classname.find('Conv') != -1:
-        init.uniform(m.weight.data, 0.0, 0.02)
+        init.uniform(m.weight.data, -0.05, 0.05)
     elif classname.find('Linear') != -1:
-        init.uniform(m.weight.data, 0.0, 0.02)
+        init.uniform(m.weight.data, -0.05, 0.05)
     elif classname.find('BatchNorm2d') != -1:
-        init.uniform(m.weight.data, 1.0, 0.02)
+        init.uniform(m.weight.data, 0.95, 1.05)
         init.constant(m.bias.data, 0.0)
 
 
@@ -33,7 +33,7 @@ def weights_init_xavier(m):
     elif classname.find('Linear') != -1:
         init.xavier_normal(m.weight.data, gain=1)
     elif classname.find('BatchNorm2d') != -1:
-        init.uniform(m.weight.data, 1.0, 0.02)
+        init.uniform(m.weight.data, 0.95, 1.05)
         init.constant(m.bias.data, 0.0)
 
 
@@ -45,7 +45,7 @@ def weights_init_kaiming(m):
     elif classname.find('Linear') != -1:
         init.kaiming_normal(m.weight.data, a=0, mode='fan_in')
     elif classname.find('BatchNorm2d') != -1:
-        init.uniform(m.weight.data, 1.0, 0.02)
+        init.uniform(m.weight.data, 0.95, 1.05)
         init.constant(m.bias.data, 0.0)
 
 
@@ -57,7 +57,7 @@ def weights_init_orthogonal(m):
     elif classname.find('Linear') != -1:
         init.orthogonal(m.weight.data, gain=1)
     elif classname.find('BatchNorm2d') != -1:
-        init.uniform(m.weight.data, 1.0, 0.02)
+        init.uniform(m.weight.data, 0.95, 1.05)
         init.constant(m.bias.data, 0.0)
 
 
@@ -141,11 +141,9 @@ class Pix2PixModel(nn.Module):
 
         self.netG = define_G(input_nc, output_nc, 64, 'unet_256', 'batch', False, 'xavier', [0], inner_nc=inner_nc)
 
-    def forward(self, *cycles):
+    def forward(self, *cycles, latent_pose_vector_only=False):
         # First one
-        xc = self.netG(cycles[0], *cycles[1:])
-        return xc
-
+        return self.netG(cycles[0], *cycles[1:], latent_pose_vector_only=latent_pose_vector_only)
 
 
 # Defines the Unet generator.
@@ -197,12 +195,12 @@ class UnetGeneratorBetterUpsampler(nn.Module):
 
         self.model = unet_block
 
-    def forward(self, x, *views):
+    def forward(self, x, *views, latent_pose_vector_only=False):
         # if self.gpu_ids and isinstance(x.data, torch.cuda.FloatTensor):
         #     output, output_orig = nn.parallel.data_parallel(self.model, (x, views), self.gpu_ids)
         #     return output, output_orig
         # else:
-        return self.model(x, *views)
+        return self.model(x, *views, latent_pose_vector_only=latent_pose_vector_only)
 
 # Defines the submodule with skip connection.
 # X -------------------identity---------------------- X
@@ -259,17 +257,23 @@ class UnetSkipConnectionBlockBetterUpsampler(nn.Module):
         self.submodule =submodule
 
 
-    def forward(self, x_orig):
+    def forward(self, x_orig, latent_pose_vector_only=False):
         x_fv = self.down(x_orig)
 
         if self.innermost:
+            if latent_pose_vector_only:
+                return x_fv
             x = self.up(x_fv)
             return x, x_fv
-        if self.outermost:
+        elif self.outermost:
+            if latent_pose_vector_only:
+                return self.submodule(x_fv, latent_pose_vector_only=True)
             x, x_fv = self.submodule(x_fv)
             x = self.up(x)
             return x, x_fv
         else:
+            if latent_pose_vector_only:
+                return self.submodule(x_fv, latent_pose_vector_only=True)
             x, x_fv = self.submodule(x_fv)
             if self.use_dropout:
                 x = self.dropout(self.up(x))

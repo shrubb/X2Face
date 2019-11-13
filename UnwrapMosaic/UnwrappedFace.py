@@ -12,13 +12,13 @@ import numpy as np
 # denoting the offset from the identity mapping.
 
 class UnwrappedFaceWeightedAverage(nn.Module):
-    def __init__(self, output_num_channels=2, input_num_channels=3, inner_nc=512):
+    def __init__(self, output_num_channels=2, input_num_channels=3, inner_nc=512, sampler_only=False):
         super(UnwrappedFaceWeightedAverage, self).__init__()
     
-        self.pix2pixUnwrapped = Pix2PixModel(3)
+        if not sampler_only:
+            self.pix2pixUnwrapped = Pix2PixModel(3)
     
         self.pix2pixSampler = NoSkipPix2PixModel(input_num_channels, output_num_channels, inner_nc=inner_nc)
-    
     
     def forward(self, target_pose, *input_imgs):
         xs = np.linspace(-1,1,input_imgs[0].size(2))
@@ -46,7 +46,7 @@ class UnwrappedFaceWeightedAverage(nn.Module):
     
         result_xc = input_imgs / confidences.expand_as(input_imgs)
         
-        sampler = self.pix2pixSampler(target_pose)[0]
+        sampler, _ = self.pix2pixSampler(target_pose)
     
         
         if sampler.size(1) == 2:
@@ -103,16 +103,20 @@ class UnwrappedFaceWeightedAverage(nn.Module):
         result_xc = input_imgs / confidences_sum.expand_as(input_imgs)
         return result_xc, confidences
     
-    def get_sampler(self, target_pose):
-        sampler = nn.Tanh()(self.pix2pixSampler(target_pose)[0])
-    
-        xs = np.linspace(-1,1,sampler.size(2))
-        xs = np.meshgrid(xs, xs)
-        xs = np.stack(xs, 2)
-        xs = torch.Tensor(xs).unsqueeze(0).repeat(target_pose.size(0), 1,1,1).cuda()
-    
-        sampler = sampler.permute(0,2,3,1) + Variable(xs, requires_grad=False)
-        return sampler
+    def get_sampler(self, target_pose, latent_pose_vector_only=False):
+        if latent_pose_vector_only:
+            latent_pose_vector = self.pix2pixSampler(target_pose, latent_pose_vector_only=True)
+            return latent_pose_vector
+        else:
+            sampler = nn.Tanh()(self.pix2pixSampler(target_pose)[0])
+        
+            xs = np.linspace(-1,1,sampler.size(2))
+            xs = np.meshgrid(xs, xs)
+            xs = np.stack(xs, 2)
+            xs = torch.Tensor(xs).unsqueeze(0).repeat(target_pose.size(0), 1,1,1).cuda()
+        
+            sampler = sampler.permute(0,2,3,1) + Variable(xs, requires_grad=False)
+            return sampler
     
 
 class UnwrappedFaceWeightedAveragePose(nn.Module):
