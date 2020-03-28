@@ -34,7 +34,7 @@ class UnwrappedFaceWeightedAverage(nn.Module):
                 sampler = temp[:,0:2,:,:]
                 confidence[i] = temp[:,2:3,:,:].unsqueeze(4).exp().add(0.1)
                 input_imgs_t[i] = nn.Tanh()(sampler).permute(0,2,3,1) + Variable(xs, requires_grad=False)
-                input_imgs_t[i] = nn.functional.grid_sample(input_imgs[i],  input_imgs_t[i]).unsqueeze(4)
+                input_imgs_t[i] = nn.functional.grid_sample(input_imgs[i],  input_imgs_t[i], align_corners=True).unsqueeze(4)
                 input_imgs_t[i] = input_imgs_t[i] * confidence[i].expand_as(input_imgs_t[i])
                 
         # Combine multiple images
@@ -53,7 +53,7 @@ class UnwrappedFaceWeightedAverage(nn.Module):
                 sampler_xy = nn.Tanh()(sampler)
                 sampler_xy = sampler_xy.permute(0,2,3,1) + Variable(xs, requires_grad=False)
     
-                sampled_image = nn.functional.grid_sample(result_xc, sampler_xy)
+                sampled_image = nn.functional.grid_sample(result_xc, sampler_xy, align_corners=True)
                 return sampled_image
     
         sampler_xy = nn.Tanh()(sampler[:,0:2,:,:])
@@ -62,7 +62,7 @@ class UnwrappedFaceWeightedAverage(nn.Module):
         sampler_xy = sampler_xy.permute(0,2,3,1) + stddev.permute(0,2,3,1).contiguous().mul(Variable(torch.randn(xs.size()).cuda(), requires_grad=False)) + Variable(xs, requires_grad=False) # choose values according to the std dev
         sampler_xy = sampler_xy.clamp(min=-1,max=1)
     
-        sampled_image = nn.functional.grid_sample(result_xc, sampler_xy)
+        sampled_image = nn.functional.grid_sample(result_xc, sampler_xy, align_corners=True)
         return sampled_image, stddev
     
     def get_unwrapped_oneimage(self, input_img):
@@ -74,7 +74,7 @@ class UnwrappedFaceWeightedAverage(nn.Module):
         temp = self.pix2pixUnwrapped(input_img)[0]
         sampler = temp[:,0:2,:,:]
         sampler = nn.Tanh()(sampler).permute(0,2,3,1) + Variable(xs, requires_grad=False)
-        input_img_t = nn.functional.grid_sample(input_img,  sampler)
+        input_img_t = nn.functional.grid_sample(input_img,  sampler, align_corners=True)
         return input_img_t
     
     def get_unwrapped(self, *input_imgs):
@@ -90,7 +90,7 @@ class UnwrappedFaceWeightedAverage(nn.Module):
                 sampler = temp[:,0:2,:,:]
                 confidence[i] = temp[:,2:3,:,:].unsqueeze(4).exp()
                 input_imgs_t[i] = nn.Tanh()(sampler).permute(0,2,3,1) + Variable(xs, requires_grad=False)
-                input_imgs_t[i] = nn.functional.grid_sample(input_imgs[i],  input_imgs_t[i]).unsqueeze(4)
+                input_imgs_t[i] = nn.functional.grid_sample(input_imgs[i],  input_imgs_t[i], align_corners=True).unsqueeze(4)
                 input_imgs_t[i] = input_imgs_t[i] * confidence[i].expand_as(input_imgs_t[i])
                 
         # Combine multiple images
@@ -140,7 +140,7 @@ class UnwrappedFaceWeightedAveragePose(nn.Module):
                         sampler = temp[:,0:2,:,:]
                         confidence[i] = temp[:,2:3,:,:].unsqueeze(4).exp().add(0.1)
                         input_imgs_t[i] = nn.Tanh()(sampler).permute(0,2,3,1) + Variable(xs, requires_grad=False)
-                        input_imgs_t[i] = nn.functional.grid_sample(input_imgs[i],  input_imgs_t[i]).unsqueeze(4)
+                        input_imgs_t[i] = nn.functional.grid_sample(input_imgs[i],  input_imgs_t[i], align_corners=True).unsqueeze(4)
                         input_imgs_t[i] = input_imgs_t[i] * confidence[i].expand_as(input_imgs_t[i])
                         
                 # Combine multiple images
@@ -159,7 +159,7 @@ class UnwrappedFaceWeightedAveragePose(nn.Module):
                         sampler_xy = nn.Tanh()(sampler)
                         sampler_xy = sampler_xy.permute(0,2,3,1) + Variable(xs, requires_grad=False)
 
-                        sampled_image = nn.functional.grid_sample(result_xc, sampler_xy)
+                        sampled_image = nn.functional.grid_sample(result_xc, sampler_xy, align_corners=True)
                         return sampled_image
 
                 sampler_xy = nn.Tanh()(sampler[:,0:2,:,:])
@@ -168,7 +168,7 @@ class UnwrappedFaceWeightedAveragePose(nn.Module):
                 sampler_xy = sampler_xy.permute(0,2,3,1) + stddev.permute(0,2,3,1).contiguous().mul(Variable(torch.randn(xs.size()).cuda(), requires_grad=False)) + Variable(xs, requires_grad=False) # choose values according to the std dev
                 sampler_xy = sampler_xy.clamp(min=-1,max=1)
 
-                sampled_image = nn.functional.grid_sample(result_xc, sampler_xy)
+                sampled_image = nn.functional.grid_sample(result_xc, sampler_xy, align_corners=True)
                 return sampled_image, stddev
 
         def get_unwrapped(self, *input_imgs):
@@ -184,7 +184,7 @@ class UnwrappedFaceWeightedAveragePose(nn.Module):
                         sampler = temp[:,0:2,:,:]
                         confidence[i] = temp[:,2:3,:,:].unsqueeze(4).exp()
                         input_imgs_t[i] = nn.Tanh()(sampler).permute(0,2,3,1) + Variable(xs, requires_grad=False)
-                        input_imgs_t[i] = nn.functional.grid_sample(input_imgs[i],  input_imgs_t[i]).unsqueeze(4)
+                        input_imgs_t[i] = nn.functional.grid_sample(input_imgs[i],  input_imgs_t[i], align_corners=True).unsqueeze(4)
                         input_imgs_t[i] = input_imgs_t[i] * confidence[i].expand_as(input_imgs_t[i])
                         
                 # Combine multiple images
